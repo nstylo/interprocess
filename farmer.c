@@ -63,12 +63,11 @@ static void init_message_queues(void) {
     sprintf(mq_name_res, "/mq_res_%s_%d", STUDENT_NAME, getpid());
 
     // Init request queue
-    attr.mq_maxmsg = 10;
+    attr.mq_maxmsg = MQ_MAX_MESSAGES;
     attr.mq_msgsize = 10; // TODO size of struct
     mq_req = mq_open(mq_name_req, O_WRONLY | O_CREAT | O_EXCL, 0600, &attr);
 
     // Init response queue
-    attr.mq_maxmsg = 10;
     attr.mq_msgsize = 10; // TODO size of struct
     mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
 
@@ -95,7 +94,7 @@ static void create_worker(void) {
         if (processID == 0)
         {
             printf ("child  pid:%d\n", getpid());
-            execlp ("./worker", "./worker", "", NULL);
+            execlp ("./worker", "./worker", mq_name_req, mq_name_res, NULL);  // pass on queue names to worker
 
             // we should never arrive here...
             perror ("execlp() failed");
@@ -107,7 +106,7 @@ static void create_worker(void) {
     }
 }
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
     if (argc != 1)
     {

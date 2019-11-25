@@ -28,9 +28,16 @@
 static void rsleep (int t);
 
 
-int main (int argc, char * argv[])
+int main (int argc, char *argv[])
 {
     printf("We are in the child process %d\n", getpid());
+    printf("Given the following arguments: \n\n");
+
+    // read passed on arguments
+    for (int i = 0; i < argc; i++) {
+        printf("* %s\n", argv[i]);
+    }
+
     sleep(2);
 
     // TODO:
@@ -46,6 +53,11 @@ int main (int argc, char * argv[])
 
     return (0);
 }
+
+// static void init_message_queues(void) {
+//     mqd_t               mq_req;
+//     mqd_t               mq_res;
+// }
 
 /*
  * rsleep(int t)
