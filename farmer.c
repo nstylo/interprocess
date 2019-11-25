@@ -2,7 +2,7 @@
  * Operating Systems {2INCO} Practical Assignment
  * Interprocess Communication
  *
- * STUDENT_NAME_1 (STUDENT_NR_1)
+ * Niklas Stylianou (1284037)
  * STUDENT_NAME_2 (STUDENT_NR_2)
  *
  * Grading:
@@ -26,13 +26,66 @@
 #include "settings.h"
 #include "common.h"
 
+#define STUDENT_NAME "niklas"
 
-int main (int argc, char * argv[])
+static char mq_name_req[80];
+static char mq_name_res[80];
+
+/*
+ * reads and prints the attributes of a message queue to the console
+ */
+static void getattr(mqd_t mq)
+{
+    struct mq_attr      attr;
+    int                 rtnval;
+
+    rtnval = mq_getattr(mq, &attr);
+    if (rtnval == -1)
+    {
+        perror ("mq_getattr() failed");
+        exit (1);
+    }
+    fprintf (stderr, "%d: mqdes=%d max=%ld size=%ld nrof=%ld\n",
+                getpid(),
+                mq, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
+}
+
+/*
+ * Initializes message farmer -> workers and workers -> farmer queues
+ */
+static void init_message_queues(void) {
+    mqd_t               mq_req;         /* Message queue farmer -> worker */
+    mqd_t               mq_res;         /* Message queue worker -> farmer */
+    struct mq_attr      attr;           /* Message queue attributes */
+
+    // Assign queue names
+    sprintf(mq_name_req, "/mq_req_%s_%d", STUDENT_NAME, getpid());
+    sprintf(mq_name_res, "/mq_res_%s_%d", STUDENT_NAME, getpid());
+
+    // Init request queue
+    attr.mq_maxmsg = 10;
+    attr.mq_msgsize = 10; // TODO size of struct
+    mq_req = mq_open(mq_name_req, O_WRONLY | O_CREAT | O_EXCL, 0600, &attr);
+
+    // Init response queue
+    attr.mq_maxmsg = 10;
+    attr.mq_msgsize = 10; // TODO size of struct
+    mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
+
+    // print to console
+    getattr(mq_req);
+    getattr(mq_res);
+}
+
+int main(int argc, char * argv[])
 {
     if (argc != 1)
     {
         fprintf (stderr, "%s: invalid arguments\n", argv[0]);
     }
+
+    init_message_queues();
+    sleep(60);
 
     // TODO:
     //  * create the message queues (see message_queue_test() in interprocess_basic.c)
@@ -46,4 +99,3 @@ int main (int argc, char * argv[])
 
     return (0);
 }
-

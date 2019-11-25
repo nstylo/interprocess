@@ -12,7 +12,7 @@
 
 // maximum size for any message in the tests
 #define MAX_MESSAGE_LENGTH	6
- 
+
 
 // TODO: put your definitions of the datastructures here
 
