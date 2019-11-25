@@ -38,9 +38,11 @@ Compile the md5s programm with `$ make md5s` and run it with `$ ./md5s arg0 arg1
 
 - [ ] add name and student number to worker.c, farmer.c
 - [x] initializes message queues
+- [x] farmer has create_worker function
 - [ ] define message datastucture
 - [ ] define worker function for computing hash value
 - [ ] when does a worker know when all jobs are done?
+- [ ] cleans up queues
 - [ ] write documentation
 
 ### Important links:
