@@ -77,6 +77,36 @@ static void init_message_queues(void) {
     getattr(mq_res);
 }
 
+/*
+ * Creates a single worker as child process
+ */
+static void create_worker(void) {
+    pid_t           processID;      /* Process ID from fork() */
+
+    printf ("parent pid:%d\n", getpid());
+    processID = fork();
+    if (processID < 0)
+    {
+        perror("fork() failed");
+        exit (1);
+    }
+    else
+    {
+        if (processID == 0)
+        {
+            printf ("child  pid:%d\n", getpid());
+            execlp ("./worker", "./worker", "", NULL);
+
+            // we should never arrive here...
+            perror ("execlp() failed");
+        }
+        // else: we are still the parent (which continues this program)
+
+        waitpid (processID, NULL, 0);   // wait for the child
+        printf ("child %d has been finished\n\n", processID);
+    }
+}
+
 int main(int argc, char * argv[])
 {
     if (argc != 1)
@@ -85,11 +115,10 @@ int main(int argc, char * argv[])
     }
 
     init_message_queues();
+    create_worker();
     sleep(60);
 
     // TODO:
-    //  * create the message queues (see message_queue_test() in interprocess_basic.c)
-    //  * create the child processes (see process_test() and message_queue_test())
     //  * do the farming
     //  * wait until the chilren have been stopped (see process_test())
     //  * clean up the message queues (see message_queue_test())

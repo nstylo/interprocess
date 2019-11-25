@@ -1,4 +1,4 @@
-/* 
+/*
  * Operating Systems {2INCO} Practical Assignment
  * Interprocess Communication
  *
@@ -6,9 +6,9 @@
  * STUDENT_NAME_2 (STUDENT_NR_2)
  *
  * Grading:
- * Students who hand in clean code that fully satisfies the minimum requirements will get an 8. 
- * Extra steps can lead to higher marks because we want students to take the initiative. 
- * Extra steps can be, for example, in the form of measurements added to your code, a formal 
+ * Students who hand in clean code that fully satisfies the minimum requirements will get an 8.
+ * Extra steps can lead to higher marks because we want students to take the initiative.
+ * Extra steps can be, for example, in the form of measurements added to your code, a formal
  * analysis of deadlock freeness etc.
  */
 
@@ -30,17 +30,20 @@ static void rsleep (int t);
 
 int main (int argc, char * argv[])
 {
+    printf("We are in the child process %d\n", getpid());
+    sleep(2);
+
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
     //  * open the two message queues (whose names are provided in the arguments)
     //  * repeatingly:
     //      - read from a message queue the new job to do
     //      - wait a random amount of time (e.g. rsleep(10000);)
-    //      - do that job 
+    //      - do that job
     //      - write the results to a message queue
     //    until there are no more tasks to do
     //  * close the message queues
-    
+
     return (0);
 }
 
@@ -54,7 +57,7 @@ int main (int argc, char * argv[])
 static void rsleep (int t)
 {
     static bool first_call = true;
-    
+
     if (first_call == true)
     {
         srandom (time (NULL) % getpid ());
