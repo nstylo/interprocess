@@ -26,7 +26,7 @@
 #include "settings.h"
 #include "common.h"
 
-#define STUDENT_NAME "niklas"
+#define STUDENT_NAME "Niklas&Maurice"
 
 static char mq_name_req[80];
 static char mq_name_res[80];
@@ -70,6 +70,12 @@ static void init_message_queues(void) {
     // Init response queue
     attr.mq_msgsize = 10; // TODO size of struct
     mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
+
+
+    REQ_M msg;
+    msg.a = 'a';
+    mq_send (mq_req, (char *) &msg, sizeof (msg), 0);
+    printf(" send 15 with size , %ld \n", sizeof(msg));
 
     // print to console
     getattr(mq_req);
@@ -115,7 +121,13 @@ int main(int argc, char *argv[])
 
     init_message_queues();
     create_worker();
-    sleep(60);
+
+
+
+
+
+
+    sleep(1);
 
     // TODO:
     //  * do the farming

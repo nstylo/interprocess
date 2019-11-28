@@ -25,6 +25,9 @@
 #include "common.h"
 #include "md5s.h"
 
+static char mq_name_req[80];
+static char mq_name_res[80];
+
 static void rsleep (int t);
 
 
@@ -37,6 +40,28 @@ int main (int argc, char *argv[])
     for (int i = 0; i < argc; i++) {
         printf("* %s\n", argv[i]);
     }
+
+
+
+    // get the message queues
+    strcpy( mq_name_req, argv[1]);
+    strcpy( mq_name_res, argv[2]);
+    //mq_name_res = argv[2];
+
+    mqd_t mq_req;
+    mqd_t mq_res;
+
+    mq_req = mq_open (mq_name_req , O_RDONLY);
+    mq_res = mq_open (mq_name_res , O_WRONLY);
+
+
+    REQ_M rec;
+    printf ("                                   child: receiving...\n");
+    mq_receive (mq_req, (char *) &rec, sizeof (rec), NULL);
+
+    printf ("                                   child: received: %c\n",
+            rec.a);
+
 
     sleep(2);
 

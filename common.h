@@ -16,6 +16,11 @@
 
 // TODO: put your definitions of the datastructures here
 
+typedef struct
+{
+    char a;
+} REQ_M;
+
 
 #endif
 
