@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 
     init_message_queues();
     create_worker();
-    sleep(60);
+    sleep(5);
 
     // TODO:
     //  * do the farming

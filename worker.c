@@ -27,37 +27,33 @@
 
 static void rsleep (int t);
 
+/**
+ * @param mq_name_req   the name of request (farmer -> worker) message queue to open
+ * @param mq_name_res   the name of response (worker -> farmer) message queue to open
+ */
+static void read_mq(char mq_name_req[255], char mq_name_res[255]) {
+    mqd_t               mq_req;
+    mqd_t               mq_res;
 
-int main (int argc, char *argv[])
-{
-    printf("We are in the child process %d\n", getpid());
-    printf("Given the following arguments: \n\n");
+    MQ_REQ_MSG          req;
+    MQ_RES_MSG          res;
 
-    // read passed on arguments
-    for (int i = 0; i < argc; i++) {
-        printf("* %s\n", argv[i]);
-    }
+    mq_req = mq_open(mq_name_req, O_RDONLY);
+    mq_res = mq_open(mq_name_res, O_WRONLY);
 
-    sleep(2);
+    // read the message queue and store it in the request message
+    printf ("child: receiving...\n");
+    mq_receive (mq_req, (char*)&req, sizeof(req), NULL);
 
-    // TODO:
-    // (see message_queue_test() in interprocess_basic.c)
-    //  * open the two message queues (whose names are provided in the arguments)
-    //  * repeatingly:
-    //      - read from a message queue the new job to do
-    //      - wait a random amount of time (e.g. rsleep(10000);)
-    //      - do that job
-    //      - write the results to a message queue
-    //    until there are no more tasks to do
-    //  * close the message queues
+    printf ("child: received: '%s', '%s'\n", req.password, req.finished ? "true" : "false");
 
-    return (0);
+    // TEMP
+    mq_close(mq_req);
+    mq_close(mq_res);
+
+    mq_unlink(mq_name_req);
+    mq_unlink(mq_name_res);
 }
-
-// static void init_message_queues(void) {
-//     mqd_t               mq_req;
-//     mqd_t               mq_res;
-// }
 
 /*
  * rsleep(int t)
@@ -78,4 +74,42 @@ static void rsleep (int t)
     usleep (random() % t);
 }
 
+int main (int argc, char *argv[])
+{
+    printf("We are in the child process %d\n", getpid());
+    printf("Given the following arguments: \n\n");
+
+    // mq names
+    char mq_name_req[255];      // NAME_MAX, see http://man7.org/linux/man-pages/man7/mq_overview.7.html
+    char mq_name_res[255];
+
+    // read passed on arguments
+    for (int i = 0; i < argc; i++) {
+        printf("%d. %s\n", i, argv[i]);
+
+        // read and store mq names
+        if (i == 1) {
+            strcpy(mq_name_req, argv[i]);
+        } else if (i == 2) {
+            strcpy(mq_name_res, argv[i]);
+        }
+    }
+
+    // open message queues, read plaintext password and compute hash until
+    // worker disseminates jobs with raised finished flag
+    read_mq(mq_name_req, mq_name_res);
+
+    // TODO:
+    // (see message_queue_test() in interprocess_basic.c)
+    //  * open the two message queues (whose names are provided in the arguments)
+    //  * repeatingly:
+    //      - read from a message queue the new job to do
+    //      - wait a random amount of time (e.g. rsleep(10000);)
+    //      - do that job
+    //      - write the results to a message queue
+    //    until there are no more tasks to do
+    //  * close the message queues
+
+    return (0);
+}
 
