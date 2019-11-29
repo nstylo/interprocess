@@ -18,13 +18,13 @@
 // TODO: put your definitions of the datastructures here
 typedef struct
 {
-    char hash[128];
+    char password[MAX_MESSAGE_LENGTH];
+    bool finished;
 } MQ_REQ_MSG;
 
 typedef struct
 {
-    char password[MAX_MESSAGE_LENGTH];
-    bool finished;
+    char hash[128];
 } MQ_RES_MSG;
 
 #endif
