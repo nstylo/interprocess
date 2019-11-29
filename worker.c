@@ -42,10 +42,10 @@ static void read_mq(char mq_name_req[255], char mq_name_res[255]) {
     mq_res = mq_open(mq_name_res, O_WRONLY);
 
     // read the message queue and store it in the request message
-    printf ("child: receiving...\n");
-    mq_receive (mq_req, (char*)&req, sizeof(req), NULL);
+    printf("child: receiving...\n");
+    mq_receive(mq_req, (char*)&req, sizeof(req), NULL);
 
-    printf ("child: received: '%s', '%s'\n", req.password, req.finished ? "true" : "false");
+    printf("child: received: '%s', '%s'\n", req.password, req.finished ? "true" : "false");
 
     // TEMP
     mq_close(mq_req);
@@ -101,7 +101,6 @@ int main (int argc, char *argv[])
 
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
-    //  * open the two message queues (whose names are provided in the arguments)
     //  * repeatingly:
     //      - read from a message queue the new job to do
     //      - wait a random amount of time (e.g. rsleep(10000);)

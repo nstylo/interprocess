@@ -48,6 +48,7 @@ Compile the md5s programm with `$ make md5s` and run it with `$ ./md5s arg0 arg1
 - [ ] create for loop which loops over all plaintext passwords
 - [ ] worker should check whether 'finished' flag was set by farmer
 - [ ] farmer should be efficient with the queues, i.e. none should be empty for too long
+- [ ] farmer should wait for ALL child processes to terminate
 - [ ] write documentation
 
 ### OPTIONAL

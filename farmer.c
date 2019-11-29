@@ -64,11 +64,11 @@ static void init_message_queues(void) {
 
     // Init request queue
     attr.mq_maxmsg = MQ_MAX_MESSAGES;
-    attr.mq_msgsize = 10; // TODO size of struct
+    attr.mq_msgsize = sizeof(MQ_REQ_MSG);
     mq_req = mq_open(mq_name_req, O_WRONLY | O_CREAT | O_EXCL, 0600, &attr);
 
     // Init response queue
-    attr.mq_msgsize = 10; // TODO size of struct
+    attr.mq_msgsize = sizeof(MQ_RES_MSG);
     mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
 
     // print to console
@@ -100,6 +100,13 @@ static void create_worker(void) {
             perror ("execlp() failed");
         }
         // else: we are still the parent (which continues this program)
+        // TODO: this is only for testing purposes
+        MQ_REQ_MSG req;
+        strcpy(req.password, "a");
+        req.finished = false;
+
+        mqd_t mq_req = mq_open(mq_name_req, O_WRONLY);
+        mq_send(mq_req, (char *) &req, sizeof (req), 0);
 
         waitpid (processID, NULL, 0);   // wait for the child
         printf ("child %d has been finished\n\n", processID);
@@ -115,6 +122,7 @@ int main(int argc, char *argv[])
 
     init_message_queues();
     create_worker();
+
     sleep(5);
 
     // TODO:
