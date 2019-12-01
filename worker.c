@@ -56,14 +56,28 @@ static void close_mq(char mq_name_req[255], char mq_name_res[255]) {
     mq_unlink(mq_name_res);
 }
 
+/**
+ * receives a message from the request queue.
+ * @param req request message
+ */
 static void get_message(MQ_REQ_MSG *req) {
     mq_receive(mq_req, (char*)  req, sizeof(MQ_REQ_MSG), NULL);
 }
 
+/**
+ * Sends a message on the response queue
+ * @param MQ_RES_MSG Message to be sent
+ */
 static void send_message(MQ_RES_MSG res) {
     mq_send(mq_res, (char *) &res, sizeof (res), 0);
 }
 
+/**
+ * Checks if a password produces the desired hash value
+ * @param password
+ * @param hash
+ * @return true if the md5s(password) = hash, else false.
+ */
 static bool tryHash( char password[], uint128_t hash) {
     uint128_t pre_hash;
     pre_hash = md5s (password, strlen (password));
@@ -75,6 +89,15 @@ static bool tryHash( char password[], uint128_t hash) {
     return false;
 }
 
+/**
+ * Tries all possible passwords and checks if they are a solution to the hash.
+ * Uses Recursion
+ * @param firstLetter       First letter of the password.
+ * @param str               Part of the string we already have.
+ * @param hash              Hash for which we want a solution.
+ * @param alphabet_size     Size of available alphabet.
+ * @return                  True if a solution is found.
+ */
 static bool solve(char firstLetter, char str[], uint128_t hash, int alphabet_size) {
     if (strlen(str) == 0) {
         strncat(str, &firstLetter, 1);

@@ -50,12 +50,10 @@ static void getattr(mqd_t mq)
                 mq, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
 }
 
-/*
+/**
  * Initializes message farmer -> workers and workers -> farmer queues
  */
-static void init_message_queues(void) {
-    mqd_t               mq_req;         /* Message queue farmer -> worker */
-    mqd_t               mq_res;         /* Message queue worker -> farmer */
+static void init_message_queues(mqd_t *mq_req, mqd_t *mq_res) {
     struct mq_attr      attr;           /* Message queue attributes */
 
     // Assign queue names
@@ -65,33 +63,36 @@ static void init_message_queues(void) {
     // Init request queue
     attr.mq_maxmsg = MQ_MAX_MESSAGES;
     attr.mq_msgsize = sizeof(MQ_REQ_MSG);
-    mq_req = mq_open(mq_name_req, O_WRONLY | O_CREAT | O_EXCL, 0600, &attr);
+    *mq_req = mq_open(mq_name_req, O_WRONLY | O_CREAT | O_EXCL, 0600, &attr);
 
     // Init response queue
     attr.mq_msgsize = sizeof(MQ_RES_MSG);
-    mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
+    *mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
+
 
     // print to console
-    getattr(mq_req);
-    getattr(mq_res);
+    getattr(*mq_req);
+    getattr(*mq_res);
 }
 
-/*
+static void
+
+/**
+ *  @param pid_t ID of the child.
  * Creates a single worker as child process
  */
-static void create_worker(void) {
-    pid_t           processID;      /* Process ID from fork() */
+static void create_worker(pid_t *processID) {
 
     printf ("parent pid:%d\n", getpid());
-    processID = fork();
-    if (processID < 0)
+    *processID = fork();
+    if (*processID < 0)
     {
         perror("fork() failed");
         exit (1);
     }
     else
     {
-        if (processID == 0)
+        if (*processID == 0)
         {
             printf ("child  pid:%d\n", getpid());
             execlp ("./worker", "./worker", mq_name_req, mq_name_res, NULL);  // pass on queue names to worker
@@ -100,25 +101,11 @@ static void create_worker(void) {
             perror ("execlp() failed");
         }
         // else: we are still the parent (which continues this program)
-        // TODO: this is only for testing purposes
-        MQ_REQ_MSG req;
-        req.hash = UINT128(0xcfcbe5bdf31116aa,0x3dcffb7e7470333e); // just a test message
-        req.first_letter = 'b';
-        req.alphabet_size = ALPHABET_NROF_CHAR; // TODO maybe this one could be better passed as argument?
 
-        mqd_t mq_req = mq_open(mq_name_req, O_WRONLY);
-        mqd_t mq_res = mq_open(mq_name_res, O_RDONLY);
-
-        mq_send(mq_req, (char *) &req, sizeof (req), 0);
-
-        waitpid (processID, NULL, 0);   // wait for the child
-        printf ("child %d has been finished\n\n", processID);
-
-        MQ_RES_MSG res;
-        mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
-        printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
     }
 }
+
+
 
 int main(int argc, char *argv[])
 {
@@ -127,10 +114,37 @@ int main(int argc, char *argv[])
         fprintf (stderr, "%s: invalid arguments\n", argv[0]);
     }
 
-    init_message_queues();
-    create_worker();
+    mqd_t mq_req;         /* Message queue farmer -> worker */
+    mqd_t mq_res;         /* Message queue worker -> farmer */
+    pid_t processID;      /* Process ID from fork() */
 
-    sleep(5);
+
+    init_message_queues(&mq_req, &mq_res);
+    create_worker(&processID);
+
+
+
+    // TODO: this is only for testing purposes
+    MQ_REQ_MSG req;
+    req.hash = UINT128(0xcfcbe5bdf31116aa,0x3dcffb7e7470333e); // just a test message
+    req.first_letter = 'b';
+    req.alphabet_size = ALPHABET_NROF_CHAR; // TODO maybe this one could be better passed as argument?
+
+    mq_send(mq_req, (char *) &req, sizeof (req), 0);
+
+
+
+    MQ_RES_MSG res;
+    mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
+    printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
+
+
+
+
+
+    waitpid (processID, NULL, 0);   // wait for the child
+    printf ("child %d has been finished\n\n", processID);
+    sleep(1);
 
     // TODO:
     //  * do the farming
