@@ -64,16 +64,16 @@ static void init_message_queues(void) {
 
     // Init request queue
     attr.mq_maxmsg = MQ_MAX_MESSAGES;
-    attr.mq_msgsize = 10; // TODO size of struct
+    attr.mq_msgsize = sizeof(REQ_M); // TODO size of struct
     mq_req = mq_open(mq_name_req, O_WRONLY | O_CREAT | O_EXCL, 0600, &attr);
 
     // Init response queue
-    attr.mq_msgsize = 10; // TODO size of struct
+    attr.mq_msgsize = sizeof(REQ_M); // TODO size of struct
     mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
 
 
     REQ_M msg;
-    msg.a = 'a';
+    msg.a = 'y';
     mq_send (mq_req, (char *) &msg, sizeof (msg), 0);
     printf(" send 15 with size , %ld \n", sizeof(msg));
 
