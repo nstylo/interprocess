@@ -22,11 +22,13 @@
 #include <time.h>           // for time()
 #include <complex.h>
 
+#include "uint128.h"
+
 #include "common.h"
 #include "md5s.h"
 
 
-#define AlphabetSize  6 //TODO get size from farmer.
+
 
 static void rsleep (int t);
 
@@ -38,17 +40,8 @@ mqd_t               mq_res;
  * @param mq_name_res   the name of response (worker -> farmer) message queue to open
  */
 static void init_mq(char mq_name_req[255], char mq_name_res[255]) {
-    MQ_REQ_MSG          req;
-    MQ_RES_MSG          res;
-
     mq_req = mq_open(mq_name_req, O_RDONLY);
     mq_res = mq_open(mq_name_res, O_WRONLY);
-
-    // read the message queue and store it in the request message
-    printf("child: receiving...\n");
-    mq_receive(mq_req, (char*)&req, sizeof(req), NULL);
-
-    printf("child: received: '%s', '%s'\n", req.password, req.finished ? "true" : "false");
 }
 
 /**
@@ -63,33 +56,43 @@ static void close_mq(char mq_name_req[255], char mq_name_res[255]) {
     mq_unlink(mq_name_res);
 }
 
+static void get_message(MQ_REQ_MSG *req) {
+    mq_receive(mq_req, (char*)  req, sizeof(MQ_REQ_MSG), NULL);
+}
 
-static bool tryHash( char hash[]) {
-    char find[] = "abc"; //TODO get the result to find here.
-    printf("worker is trying hash:'%s' \n",hash);
-    if (strcmp(find, hash) == 0 ) {
+static void send_message(MQ_RES_MSG res) {
+    mq_send(mq_res, (char *) &res, sizeof (res), 0);
+}
+
+static bool tryHash( char password[], uint128_t hash) {
+    uint128_t pre_hash;
+    pre_hash = md5s (password, strlen (password));
+
+    if (pre_hash == hash ) {
         return true;
     }
 
     return false;
 }
 
-static bool solve(char firstLetter, char str[]) {
+static bool solve(char firstLetter, char str[], uint128_t hash, int alphabet_size) {
     if (strlen(str) == 0) {
         strncat(str, &firstLetter, 1);
-        if (tryHash(str)) {
+        if (tryHash(str, hash)) {
             return true;
         }
     }
     if(strlen(str) < MAX_MESSAGE_LENGTH){
-        for (int j = 97; j < 97 + AlphabetSize ; j++) {
-            char add = j;
-            strncat(str, &add, 1);
-            if (tryHash(str)) {
+        for (int j = 0; j < alphabet_size ; j++) {
+            char new = j+97;
+            strncat(str, &new, 1);
+            if (tryHash(str, hash)) {
                 return true;
             }
-            solve(firstLetter,str);
-            str[strlen(str)-1] = '\0';
+            if (solve(firstLetter, str, hash, alphabet_size)) {
+                return true;
+            }
+            str[strlen(str) - 1] = '\0';
         }
     }
     return false;
@@ -138,13 +141,30 @@ int main (int argc, char *argv[])
     // open message queues, read plaintext password and compute hash until
     // worker disseminates jobs with raised finished flag
 
+    // open messaging queues
     init_mq(mq_name_req, mq_name_res);
 
-    char str[MAX_MESSAGE_LENGTH+1] = "";
-    solve('a', str); //TODO returns true if there is a solution, still need to use result;
-    printf("the string found: %s\n", str);
+    // get message from queue
+    MQ_REQ_MSG req;
+    get_message(&req);
+    printf ("hash: 0x%016lx%016lx with letter %c and size %d \n", HI(req.hash), LO(req.hash), req.first_letter,
+            req.alphabet_size);
+
+    //solve bruteforce.
+    MQ_RES_MSG res;
+    strcpy(res.password, ""); //set to empty string to start recursion.
+     if (solve(req.first_letter, res.password, req.hash, req.alphabet_size)) {  //TODO returns true if there is a solution, still need to use result;
+         res.finished = true;
+         printf("the string found: %s\n", res.password);
+     } else {
+         res.finished = false;
+         printf("no solution found\n"  );
+     }
+
+     send_message(res); //send the reply TODO check what happens if the queue is full?
 
     close_mq(mq_name_req, mq_name_res);
+    printf("child done..\n"  );
 
 
 

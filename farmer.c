@@ -102,14 +102,21 @@ static void create_worker(void) {
         // else: we are still the parent (which continues this program)
         // TODO: this is only for testing purposes
         MQ_REQ_MSG req;
-        strcpy(req.password, "a");
-        req.finished = false;
+        req.hash = UINT128(0xcfcbe5bdf31116aa,0x3dcffb7e7470333e); // just a test message
+        req.first_letter = 'b';
+        req.alphabet_size = ALPHABET_NROF_CHAR; // TODO maybe this one could be better passed as argument?
 
         mqd_t mq_req = mq_open(mq_name_req, O_WRONLY);
+        mqd_t mq_res = mq_open(mq_name_res, O_RDONLY);
+
         mq_send(mq_req, (char *) &req, sizeof (req), 0);
 
         waitpid (processID, NULL, 0);   // wait for the child
         printf ("child %d has been finished\n\n", processID);
+
+        MQ_RES_MSG res;
+        mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
+        printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
     }
 }
 
