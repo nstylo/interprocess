@@ -3,7 +3,7 @@
  * Interprocess Communication
  *
  * Niklas Stylianou (1284037)
- * STUDENT_NAME_2 (STUDENT_NR_2)
+ * Maurice Wimmer (1250175)
  *
  * Grading:
  * Students who hand in clean code that fully satisfies the minimum requirements will get an 8.
@@ -26,7 +26,7 @@
 #include "settings.h"
 #include "common.h"
 
-#define STUDENT_NAME "niklas"
+#define STUDENT_NAME "Niklas&Maurice"
 
 static char mq_name_req[80];
 static char mq_name_res[80];

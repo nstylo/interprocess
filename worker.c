@@ -3,7 +3,7 @@
  * Interprocess Communication
  *
  * Niklas Stylianou (1284037)
- * STUDENT_NAME_2 (STUDENT_NR_2)
+ * Maurice Wimmer (1250175)
  *
  * Grading:
  * Students who hand in clean code that fully satisfies the minimum requirements will get an 8.
@@ -25,16 +25,19 @@
 #include "common.h"
 #include "md5s.h"
 
+
+#define AlphabetSize  6 //TODO get size from farmer.
+
 static void rsleep (int t);
+
+mqd_t               mq_req;
+mqd_t               mq_res;
 
 /**
  * @param mq_name_req   the name of request (farmer -> worker) message queue to open
  * @param mq_name_res   the name of response (worker -> farmer) message queue to open
  */
-static void read_mq(char mq_name_req[255], char mq_name_res[255]) {
-    mqd_t               mq_req;
-    mqd_t               mq_res;
-
+static void init_mq(char mq_name_req[255], char mq_name_res[255]) {
     MQ_REQ_MSG          req;
     MQ_RES_MSG          res;
 
@@ -46,13 +49,50 @@ static void read_mq(char mq_name_req[255], char mq_name_res[255]) {
     mq_receive(mq_req, (char*)&req, sizeof(req), NULL);
 
     printf("child: received: '%s', '%s'\n", req.password, req.finished ? "true" : "false");
+}
 
-    // TEMP
+/**
+ * @param mq_name_req   the name of request (farmer -> worker) message queue to open
+ * @param mq_name_res   the name of response (worker -> farmer) message queue to open
+ */
+static void close_mq(char mq_name_req[255], char mq_name_res[255]) {
     mq_close(mq_req);
     mq_close(mq_res);
 
     mq_unlink(mq_name_req);
     mq_unlink(mq_name_res);
+}
+
+
+static bool tryHash( char hash[]) {
+    char find[] = "abc"; //TODO get the result to find here.
+    printf("worker is trying hash:'%s' \n",hash);
+    if (strcmp(find, hash) == 0 ) {
+        return true;
+    }
+
+    return false;
+}
+
+static bool solve(char firstLetter, char str[]) {
+    if (strlen(str) == 0) {
+        strncat(str, &firstLetter, 1);
+        if (tryHash(str)) {
+            return true;
+        }
+    }
+    if(strlen(str) < MAX_MESSAGE_LENGTH){
+        for (int j = 97; j < 97 + AlphabetSize ; j++) {
+            char add = j;
+            strncat(str, &add, 1);
+            if (tryHash(str)) {
+                return true;
+            }
+            solve(firstLetter,str);
+            str[strlen(str)-1] = '\0';
+        }
+    }
+    return false;
 }
 
 /*
@@ -97,7 +137,16 @@ int main (int argc, char *argv[])
 
     // open message queues, read plaintext password and compute hash until
     // worker disseminates jobs with raised finished flag
-    read_mq(mq_name_req, mq_name_res);
+
+    init_mq(mq_name_req, mq_name_res);
+
+    char str[MAX_MESSAGE_LENGTH+1] = "";
+    solve('a', str); //TODO returns true if there is a solution, still need to use result;
+    printf("the string found: %s\n", str);
+
+    close_mq(mq_name_req, mq_name_res);
+
+
 
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
