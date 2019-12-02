@@ -139,12 +139,10 @@ int main(int argc, char *argv[])
 
     mqd_t mq_req;         /* Message queue farmer -> worker */
     mqd_t mq_res;         /* Message queue worker -> farmer */
-    pid_t processID;      /* Process ID from fork() */
-    pid_t workers_processID[NROF_WORKERS];
+    pid_t workers_processID[NROF_WORKERS]; /* Process ID from fork() */
 
 
     init_message_queues(&mq_req, &mq_res);
-    //create_worker(&processID);
     create_workers(workers_processID);
 
 
@@ -163,6 +161,7 @@ int main(int argc, char *argv[])
 
 
     sleep(5);
+    //shut down the workers.
     close_workers(workers_processID, mq_req);
     wait_workers(workers_processID);
 
