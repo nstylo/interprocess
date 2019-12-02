@@ -176,15 +176,16 @@ int main (int argc, char *argv[])
         strcpy(res.password, ""); //set to empty string to start recursion.
 
         get_message(&req);
-
+        //printf("yeeey a message\n");
         // check if we have to quit.
         if (req.quit_flg == true) {
             close_mq(mq_name_req, mq_name_res);
             printf("child done..\n");
             return (0);
         } else {
-            printf ("hash: 0x%016lx%016lx with letter %c and size %d \n", HI(req.hash), LO(req.hash), req.first_letter,
-                    req.alphabet_size);
+            printf ("hash: 0x%016lx%016lx with letter %c and size %d  and flag %s \n",
+                    HI(req.hash), LO(req.hash), req.first_letter,
+                    req.alphabet_size, req.quit_flg ? "true" : "false");
         }
 
         if (solve(req.first_letter, res.password, req.hash, req.alphabet_size)) {  //TODO returns true if there is a solution, still need to use result;
@@ -195,6 +196,7 @@ int main (int argc, char *argv[])
             printf("no solution found\n"  );
         }
 
+        res.ID = req.ID;
         send_message(res); //send the reply TODO check what happens if the queue is full?
 
     }

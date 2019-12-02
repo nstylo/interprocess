@@ -105,6 +105,29 @@ static void create_worker(pid_t *processID) {
     }
 }
 
+static void create_workers(pid_t workers_processID[]){
+    for (int i = 0; i < NROF_WORKERS; i++) {
+        create_worker(&workers_processID[i]);
+        printf("we have created %d\n", workers_processID[i]);
+    }
+}
+
+static void close_workers(pid_t workers_processID[], mqd_t mq_req){
+    MQ_REQ_MSG req;
+    req.quit_flg = true;
+    for (int i = 0; i < NROF_WORKERS; i++) {
+        req.quit_flg = true;
+        mq_send(mq_req, (char *) &req, sizeof (req), 0);
+        printf("quit messages sent\n");
+    }
+}
+
+static void wait_workers(pid_t workers_processID[]) {
+    for (int i = 0; i < NROF_WORKERS; i++) {
+        waitpid (workers_processID[i], NULL, 0);   // wait for the child
+        printf ("child %d has been finished\n\n", workers_processID[i]);
+    }
+}
 
 
 int main(int argc, char *argv[])
@@ -117,11 +140,12 @@ int main(int argc, char *argv[])
     mqd_t mq_req;         /* Message queue farmer -> worker */
     mqd_t mq_res;         /* Message queue worker -> farmer */
     pid_t processID;      /* Process ID from fork() */
+    pid_t workers_processID[NROF_WORKERS];
 
 
     init_message_queues(&mq_req, &mq_res);
-    create_worker(&processID);
-
+    //create_worker(&processID);
+    create_workers(workers_processID);
 
 
     // TODO: this is only for testing purposes
@@ -132,20 +156,17 @@ int main(int argc, char *argv[])
     req.alphabet_size = ALPHABET_NROF_CHAR; // TODO maybe this one could be better passed as argument?
 
     mq_send(mq_req, (char *) &req, sizeof (req), 0);
-
-
-
+    // see what came in. (for testing)
     MQ_RES_MSG res;
     mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
     printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
 
 
-    req.quit_flg = true;
-    mq_send(mq_req, (char *) &req, sizeof (req), 0);
+    sleep(5);
+    close_workers(workers_processID, mq_req);
+    wait_workers(workers_processID);
 
-
-    waitpid (processID, NULL, 0);   // wait for the child
-    printf ("child %d has been finished\n\n", processID);
+    getattr(mq_req);
     sleep(1);
 
     // TODO:
