@@ -75,7 +75,7 @@ static void init_message_queues(mqd_t *mq_req, mqd_t *mq_res) {
     getattr(*mq_res);
 }
 
-static void
+
 
 /**
  *  @param pid_t ID of the child.
@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
     MQ_REQ_MSG req;
     req.hash = UINT128(0xcfcbe5bdf31116aa,0x3dcffb7e7470333e); // just a test message
     req.first_letter = 'b';
+    req.quit_flg = false;
     req.alphabet_size = ALPHABET_NROF_CHAR; // TODO maybe this one could be better passed as argument?
 
     mq_send(mq_req, (char *) &req, sizeof (req), 0);
@@ -139,7 +140,8 @@ int main(int argc, char *argv[])
     printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
 
 
-
+    req.quit_flg = true;
+    mq_send(mq_req, (char *) &req, sizeof (req), 0);
 
 
     waitpid (processID, NULL, 0);   // wait for the child

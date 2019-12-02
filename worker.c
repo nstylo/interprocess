@@ -167,29 +167,37 @@ int main (int argc, char *argv[])
     // open messaging queues
     init_mq(mq_name_req, mq_name_res);
 
-    // get message from queue
+    //create messages.
     MQ_REQ_MSG req;
-    get_message(&req);
-    printf ("hash: 0x%016lx%016lx with letter %c and size %d \n", HI(req.hash), LO(req.hash), req.first_letter,
-            req.alphabet_size);
-
-    //solve bruteforce.
     MQ_RES_MSG res;
-    strcpy(res.password, ""); //set to empty string to start recursion.
-     if (solve(req.first_letter, res.password, req.hash, req.alphabet_size)) {  //TODO returns true if there is a solution, still need to use result;
-         res.finished = true;
-         printf("the string found: %s\n", res.password);
-     } else {
-         res.finished = false;
-         printf("no solution found\n"  );
-     }
 
-     send_message(res); //send the reply TODO check what happens if the queue is full?
+    //start process.
+    while (true) {
+        strcpy(res.password, ""); //set to empty string to start recursion.
 
-    close_mq(mq_name_req, mq_name_res);
-    printf("child done..\n"  );
+        get_message(&req);
 
+        // check if we have to quit.
+        if (req.quit_flg == true) {
+            close_mq(mq_name_req, mq_name_res);
+            printf("child done..\n");
+            return (0);
+        } else {
+            printf ("hash: 0x%016lx%016lx with letter %c and size %d \n", HI(req.hash), LO(req.hash), req.first_letter,
+                    req.alphabet_size);
+        }
 
+        if (solve(req.first_letter, res.password, req.hash, req.alphabet_size)) {  //TODO returns true if there is a solution, still need to use result;
+            res.finished = true;
+            printf("the string found: %s\n", res.password);
+        } else {
+            res.finished = false;
+            printf("no solution found\n"  );
+        }
+
+        send_message(res); //send the reply TODO check what happens if the queue is full?
+
+    }
 
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)

@@ -21,12 +21,15 @@ typedef struct
     uint128_t hash;
     char first_letter;
     int alphabet_size;
+    bool quit_flg;
+    int ID;
 } MQ_REQ_MSG;
 
 typedef struct
 {
     bool finished;
     char password[MAX_MESSAGE_LENGTH];
+    int ID;
 } MQ_RES_MSG;
 
 #endif
