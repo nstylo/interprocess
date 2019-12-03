@@ -146,6 +146,17 @@ static void make_jobs(MQ_REQ_MSG all_jobs[]) {
 
 }
 
+static void clean_mq(mqd_t mq_res) {
+    struct mq_attr      attr;
+    mq_getattr(mq_res, &attr);
+    MQ_RES_MSG res;
+
+    while (attr.mq_curmsgs > 0) {
+        mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
+        mq_getattr(mq_res, &attr);
+    }
+}
+
 static void send_many_jobs(mqd_t mq_req, MQ_REQ_MSG all_jobs[], int *next_job){
     struct mq_attr      attr;
     MQ_REQ_MSG req;
@@ -200,6 +211,8 @@ int main(int argc, char *argv[])
         printf("'%s'\n",passwords[i]);
     }
 
+    clean_mq(mq_res);
+
 
 
 
@@ -207,13 +220,12 @@ int main(int argc, char *argv[])
     //printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
 
 
-    sleep(5);
+    //sleep(5);
     //shut down the workers.
     close_workers(workers_processID, mq_req);
     wait_workers(workers_processID);
 
     getattr(mq_req);
-    sleep(2);
 
     // TODO:
     //  * do the farming

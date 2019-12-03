@@ -182,7 +182,7 @@ int main (int argc, char *argv[])
         // check if we have to quit.
         if (req.quit_flg == true) {
             close_mq(mq_name_req, mq_name_res);
-            printf("child done..\n");
+            printf("child done..\n"
             return (0);
         } else {
             printf ("hash: 0x%016lx%016lx with letter %c and size %d  and flag %s \n",
