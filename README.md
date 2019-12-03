@@ -36,19 +36,19 @@ Compile the md5s programm with `$ make md5s` and run it with `$ ./md5s arg0 arg1
 
 ### TODO
 
-- [ ] add name and student number to worker.c, farmer.c
+- [x] add name and student number to worker.c, farmer.c
 - [x] initializes message queues
 - [x] farmer has create_worker function
 - [x] define message datastucture
-- [ ] define worker function for computing hash value
+- [x] define worker function for computing hash value
 - [x] when does a worker know when all jobs are done?
   - boolean flag in req message
 - [ ] cleans up queues
   - only temporary solution for now
 - [ ] create for loop which loops over all plaintext passwords
-- [ ] worker should check whether 'finished' flag was set by farmer
+- [x] worker should check whether 'finished' flag was set by farmer
 - [ ] farmer should be efficient with the queues, i.e. none should be empty for too long
-- [ ] farmer should wait for ALL child processes to terminate
+- [x] farmer should wait for ALL child processes to terminate
 - [ ] write documentation
 
 ### OPTIONAL
