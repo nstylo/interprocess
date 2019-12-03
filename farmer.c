@@ -69,10 +69,6 @@ static void init_message_queues(mqd_t *mq_req, mqd_t *mq_res) {
     attr.mq_msgsize = sizeof(MQ_RES_MSG);
     *mq_res = mq_open(mq_name_res, O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
 
-
-    // print to console
-    getattr(*mq_req);
-    getattr(*mq_res);
 }
 
 
@@ -82,8 +78,10 @@ static void init_message_queues(mqd_t *mq_req, mqd_t *mq_res) {
  * Creates a single worker as child process
  */
 static void create_worker(pid_t *processID) {
-
-    printf ("parent pid:%d\n", getpid());
+    char start[2];
+    start[0] = ALPHABET_START_CHAR;
+    start[1] = '\0';
+    //printf ("parent pid:%d\n", getpid());
     *processID = fork();
     if (*processID < 0)
     {
@@ -94,8 +92,8 @@ static void create_worker(pid_t *processID) {
     {
         if (*processID == 0)
         {
-            printf ("child  pid:%d\n", getpid());
-            execlp ("./worker", "./worker", mq_name_req, mq_name_res, NULL);  // pass on queue names to worker
+            //printf ("child  pid:%d\n", getpid());
+            execlp ("./worker", "./worker", mq_name_req, mq_name_res, start, NULL);  // pass on queue names to worker
 
             // we should never arrive here...
             perror ("execlp() failed");
@@ -108,7 +106,7 @@ static void create_worker(pid_t *processID) {
 static void create_workers(pid_t workers_processID[]){
     for (int i = 0; i < NROF_WORKERS; i++) {
         create_worker(&workers_processID[i]);
-        printf("we have created %d\n", workers_processID[i]);
+        //printf("we have created %d\n", workers_processID[i]);
     }
 }
 
@@ -118,14 +116,13 @@ static void close_workers(pid_t workers_processID[], mqd_t mq_req){
     for (int i = 0; i < NROF_WORKERS; i++) {
         req.quit_flg = true;
         mq_send(mq_req, (char *) &req, sizeof (req), 0);
-        printf("quit messages sent\n");
     }
 }
 
 static void wait_workers(pid_t workers_processID[]) {
     for (int i = 0; i < NROF_WORKERS; i++) {
         waitpid (workers_processID[i], NULL, 0);   // wait for the child
-        printf ("child %d has been finished\n\n", workers_processID[i]);
+        //fprintf( stderr, "child %d has been finished\n\n", workers_processID[i]);
     }
 }
 
@@ -150,7 +147,6 @@ static void clean_mq(mqd_t mq_res) {
     struct mq_attr      attr;
     mq_getattr(mq_res, &attr);
     MQ_RES_MSG res;
-
     while (attr.mq_curmsgs > 0) {
         mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
         mq_getattr(mq_res, &attr);
@@ -165,7 +161,6 @@ static void send_many_jobs(mqd_t mq_req, MQ_REQ_MSG all_jobs[], int *next_job){
     while (attr.mq_curmsgs < MQ_MAX_MESSAGES && *next_job < JOBS_NROF) {
         req = all_jobs[*next_job];
         *next_job = *next_job + 1;
-        printf(" sending message %d \n", *next_job);
         mq_send(mq_req, (char *) &req, sizeof (req), 0);
         mq_getattr(mq_req, &attr);
     }
@@ -185,9 +180,10 @@ int main(int argc, char *argv[])
     pid_t workers_processID[NROF_WORKERS]; /* Process ID from fork() */
     MQ_RES_MSG res;
     MQ_REQ_MSG all_jobs[JOBS_NROF];
-    char passwords[MD5_LIST_NROF][MAX_MESSAGE_LENGTH];
+    char passwords[MD5_LIST_NROF][MAX_MESSAGE_LENGTH + 1];
     int next_job = 0;
     int passwords_received = 0;
+    int passwords_printed = 0;
 
 
     init_message_queues(&mq_req, &mq_res);
@@ -196,7 +192,10 @@ int main(int argc, char *argv[])
     make_jobs(all_jobs);
     send_many_jobs(mq_req, all_jobs, &next_job);
 
-    // TODO: this is only for testing purposes
+
+    for (int i = 0; i < MD5_LIST_NROF; i++) {
+        strcpy(passwords[i],"");
+    }
 
     while (passwords_received < MD5_LIST_NROF) {
         mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL); //receive blocks, so no busy waiting.
@@ -204,36 +203,27 @@ int main(int argc, char *argv[])
             strcpy(passwords[res.ID], res.password);
             passwords_received ++;
         }
+        //print a new result (for momotors sake).
+        if (strcmp("",passwords[passwords_printed]) != 0) {
+            printf("'%s'\n",passwords[passwords_printed]);
+            passwords_printed++;
+        }
         send_many_jobs(mq_req, all_jobs, &next_job);
     }
 
-    for (int i = 0; i < MD5_LIST_NROF; i++) {
-        printf("'%s'\n",passwords[i]);
+    //finish the printing
+    while (passwords_printed < MD5_LIST_NROF) {
+        if (strcmp("",passwords[passwords_printed]) != 0) {
+            printf("'%s'\n",passwords[passwords_printed]);
+            passwords_printed++;
+        }
     }
 
     clean_mq(mq_res);
 
-
-
-
-    //mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
-    //printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
-
-
-    //sleep(5);
-    //shut down the workers.
     close_workers(workers_processID, mq_req);
+
     wait_workers(workers_processID);
-
-    getattr(mq_req);
-
-    // TODO:
-    //  * do the farming
-    //  * wait until the chilren have been stopped (see process_test())
-    //  * clean up the message queues (see message_queue_test())
-
-    // Important notice: make sure that the names of the message queues contain your
-    // student name and the process id (to ensure uniqueness during testing)
 
     return (0);
 }

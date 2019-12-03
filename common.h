@@ -21,14 +21,14 @@ typedef struct
     uint128_t hash;
     char first_letter;
     int alphabet_size;
-    bool quit_flg;
+    bool quit_flg;  //instructs the worker to terminate.
     int ID;
 } MQ_REQ_MSG;
 
 typedef struct
 {
-    bool finished;
-    char password[MAX_MESSAGE_LENGTH];
+    bool finished;  //tells the farmer that this message contains a result.
+    char password[MAX_MESSAGE_LENGTH + 1];
     int ID;
 } MQ_RES_MSG;
 

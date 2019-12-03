@@ -28,12 +28,12 @@
 #include "md5s.h"
 
 
-
+mqd_t               mq_req;
+mqd_t               mq_res;
 
 static void rsleep (int t);
 
-mqd_t               mq_req;
-mqd_t               mq_res;
+
 
 /**
  * @param mq_name_req   the name of request (farmer -> worker) message queue to open
@@ -61,7 +61,17 @@ static void close_mq(char mq_name_req[255], char mq_name_res[255]) {
  * @param req request message
  */
 static void get_message(MQ_REQ_MSG *req) {
+    struct mq_attr      attr;
+
     mq_receive(mq_req, (char*)  req, sizeof(MQ_REQ_MSG), NULL);
+
+    mq_getattr(mq_req, &attr);
+    if (attr.mq_curmsgs == 0 && req->quit_flg == false) {
+        MQ_RES_MSG res;
+        res.finished = false;
+        strcpy(res.password, "");
+        mq_send(mq_res, (char *) &res, sizeof(res), 0);
+    }
 }
 
 /**
@@ -98,7 +108,7 @@ static bool tryHash( char password[], uint128_t hash) {
  * @param alphabet_size     Size of available alphabet.
  * @return                  True if a solution is found.
  */
-static bool solve(char firstLetter, char str[], uint128_t hash, int alphabet_size) {
+static bool solve(char firstLetter, char str[], uint128_t hash, int alphabet_size, char alphabet_start) {
     if (strlen(str) == 0) {
         strncat(str, &firstLetter, 1);
         if (tryHash(str, hash)) {
@@ -107,13 +117,12 @@ static bool solve(char firstLetter, char str[], uint128_t hash, int alphabet_siz
     }
     if(strlen(str) < MAX_MESSAGE_LENGTH){
         for (int j = 0; j < alphabet_size ; j++) {
-            // TODO use startchar here instead of 97.
-            char new = j+97;
+            char new = alphabet_start + j;
             strncat(str, &new, 1);
             if (tryHash(str, hash)) {
                 return true;
             }
-            if (solve(firstLetter, str, hash, alphabet_size)) {
+            if (solve(firstLetter, str, hash, alphabet_size, alphabet_start)) {
                 return true;
             }
             str[strlen(str) - 1] = '\0';
@@ -143,12 +152,10 @@ static void rsleep (int t)
 
 int main (int argc, char *argv[])
 {
-    printf("We are in the child process %d\n", getpid());
-
-
     // mq names
     char mq_name_req[255];      // NAME_MAX, see http://man7.org/linux/man-pages/man7/mq_overview.7.html
     char mq_name_res[255];
+    char alphabet_start;
 
 
      //read passed on arguments
@@ -160,6 +167,8 @@ int main (int argc, char *argv[])
             strcpy(mq_name_req, argv[i]);
         } else if (i == 2) {
             strcpy(mq_name_res, argv[i]);
+        } else if (i == 3) {
+            alphabet_start = argv[i][0];
         }
     }
 
@@ -182,27 +191,24 @@ int main (int argc, char *argv[])
         // check if we have to quit.
         if (req.quit_flg == true) {
             close_mq(mq_name_req, mq_name_res);
-            printf("child done..\n"
             return (0);
-        } else {
-            printf ("hash: 0x%016lx%016lx with letter %c and size %d  and flag %s \n",
-                    HI(req.hash), LO(req.hash), req.first_letter,
-                    req.alphabet_size, req.quit_flg ? "true" : "false");
         }
 
-        if (solve(req.first_letter, res.password, req.hash, req.alphabet_size)) {  //TODO returns true if there is a solution, still need to use result;
+        rsleep(10000);
+        if (solve(req.first_letter, res.password, req.hash, req.alphabet_size, alphabet_start)) {
             res.finished = true;
-            printf("the string found: %s\n", res.password);
+            res.ID = req.ID;
+            send_message(res);
         } else {
-            res.finished = false;
-            printf("no solution found\n"  );
+           // res.finished = false;
         }
 
-        res.ID = req.ID;
-        send_message(res); //send the reply TODO check what happens if the queue is full?
+
+         //send the reply, MQ blocks if full so no data loss.
 
     }
 
+    close_mq(mq_name_req, mq_name_res);
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
     //  * repeatingly:
