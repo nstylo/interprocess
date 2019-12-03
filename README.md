@@ -43,13 +43,13 @@ Compile the md5s programm with `$ make md5s` and run it with `$ ./md5s arg0 arg1
 - [x] define worker function for computing hash value
 - [x] when does a worker know when all jobs are done?
   - boolean flag in req message
-- [ ] cleans up queues
+- [x] cleans up queues
   - only temporary solution for now
-- [ ] create for loop which loops over all plaintext passwords
+- [x] create for loop which loops over all plaintext passwords
 - [x] worker should check whether 'finished' flag was set by farmer
-- [ ] farmer should be efficient with the queues, i.e. none should be empty for too long
+- [x] farmer should be efficient with the queues, i.e. none should be empty for too long
 - [x] farmer should wait for ALL child processes to terminate
-- [ ] write documentation
+- [x] write documentation
 
 ### OPTIONAL
 

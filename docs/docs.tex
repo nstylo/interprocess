@@ -1,0 +1,50 @@
+
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper, left=1.5in,right=1.5in,top=0.8in,bottom=0.8in]{geometry}
+
+\title{Documentation for Assignment `Interprocess Comunication`}
+\author{Niklas Stylianou 1284037 \& Maurice Wimmer 1250175}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Specification of Message Datastructures}%
+\label{sec:specification_of_message_datastructures}
+
+\subsubsection*{Request Message:}%
+
+\begin{itemize}
+    \item hash (uint128\_t) - hash to be matched.
+    \item first\_letter (char) - starting character of plaintext password.
+    \item alphabet\_size (int) - alphabet ranges from 'a' to 'a + alphabet\_size - 1'.
+    \item quit\_flag (bool) - if true, exit worker process.
+    \item ID (int) - identifies which hash corresponds to which plaintext password.
+\end{itemize}
+
+\subsubsection*{Response Message:}%
+
+\begin{itemize}
+    \item finished (bool) - if true, worker process found matching plaintext password.
+    \item password (char[MAX\_MESSAGE\_LENGTH + 1]) - plaintext password if found.
+    \item ID (int) - identifies which plaintext password corresponds to which hash.
+\end{itemize}
+
+\section{Interprocess Communication}%
+\label{sec:interprocess_communication}
+
+The farmer starts off by initializing a Request MQ and Response MQ. Then the farmer process dispatches worker processes via \textit{fork()}. Next the Request MQ receives jobs until it is full.
+Once a worker process reads a message from the Request MQ it sends a Response with the \textit{finish} flag set to false. This indicates to the farmer that a message was pulled from the Request MQ and that a new Request should be pushed.\\
+Within a while loop the farmer reads from the Response MQ via \textit{mq\_receive()} which blocks execution to prevent busy waiting.\\
+Upon receival of a Response the farmer checks if the \textit{finished} flag was set to true, which indicates that a password has been found. In that case the farmer stores the password within an array. In any case a new message is pushed into the Request MQ if there are still jobs to be done.\\
+If the amount of received passwords equals the size of the given array of hashes, the farmer prints out all plaintext passwords, closes the message queues, exists the children processes and finally returns. Closing the worker processes is realized by filling up the Request MQ with as many messages as there are workers. The \textit{quit\_flag} is raised in these messages to indicate to the workers to exit. Each worker consumes at most one such message.
+
+\section{Process creation}%
+\label{sec:process_creation}
+
+Process creation is done by the farmer via two methods. \textit{create\_worker(pid\_t *processID)} creates a single worker by calling the \textit{fork()} method provided by the POSIX API. The child process (i.e. if \textit{fork()} returns 0) executes the worker binary while passing on the names of the MQ's. The parent process merely returns from the method. \textit{create\_workers(pid\_t workers\_processID[  ])} simply loops over \textit{create\_worker(pid\_t *processID)} until \textit{NROF\_WORKERS} are created.
+
+\end{document}
+
