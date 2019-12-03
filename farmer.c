@@ -147,7 +147,6 @@ static void clean_mq(mqd_t mq_res) {
     struct mq_attr      attr;
     mq_getattr(mq_res, &attr);
     MQ_RES_MSG res;
-
     while (attr.mq_curmsgs > 0) {
         mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
         mq_getattr(mq_res, &attr);
@@ -193,7 +192,6 @@ int main(int argc, char *argv[])
     make_jobs(all_jobs);
     send_many_jobs(mq_req, all_jobs, &next_job);
 
-    // TODO: this is only for testing purposes
 
     for (int i = 0; i < MD5_LIST_NROF; i++) {
         strcpy(passwords[i],"");
@@ -224,6 +222,7 @@ int main(int argc, char *argv[])
     clean_mq(mq_res);
 
     close_workers(workers_processID, mq_req);
+
     wait_workers(workers_processID);
 
     return (0);

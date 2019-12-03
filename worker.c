@@ -61,11 +61,17 @@ static void close_mq(char mq_name_req[255], char mq_name_res[255]) {
  * @param req request message
  */
 static void get_message(MQ_REQ_MSG *req) {
+    struct mq_attr      attr;
+
     mq_receive(mq_req, (char*)  req, sizeof(MQ_REQ_MSG), NULL);
-    MQ_RES_MSG res;
-    res.finished = false;
-    strcpy(res.password, "");
-    mq_send(mq_res, (char *) &res, sizeof (res), 0);
+
+    mq_getattr(mq_req, &attr);
+    if (attr.mq_curmsgs == 0 && req->quit_flg == false) {
+        MQ_RES_MSG res;
+        res.finished = false;
+        strcpy(res.password, "");
+        mq_send(mq_res, (char *) &res, sizeof(res), 0);
+    }
 }
 
 /**
