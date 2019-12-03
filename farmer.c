@@ -129,6 +129,38 @@ static void wait_workers(pid_t workers_processID[]) {
     }
 }
 
+static void make_jobs(MQ_REQ_MSG all_jobs[]) {
+    MQ_REQ_MSG req;
+    char start;
+    for (int j = 0; j < MD5_LIST_NROF; j++) {
+        for (int i = 0; i < ALPHABET_NROF_CHAR; i++) {
+            start = ALPHABET_START_CHAR + i;
+            req.quit_flg = false;
+            req.ID = j;
+            req.alphabet_size = ALPHABET_NROF_CHAR;
+            req.first_letter = start;
+            req.hash = md5_list[j];
+            all_jobs[j*ALPHABET_NROF_CHAR + i] = req;
+        }
+    }
+
+}
+
+static void send_many_jobs(mqd_t mq_req, MQ_REQ_MSG all_jobs[], int *next_job){
+    struct mq_attr      attr;
+    MQ_REQ_MSG req;
+    mq_getattr(mq_req, &attr);
+
+    while (attr.mq_curmsgs < MQ_MAX_MESSAGES && *next_job < JOBS_NROF) {
+        req = all_jobs[*next_job];
+        *next_job = *next_job + 1;
+        printf(" sending message %d \n", *next_job);
+        mq_send(mq_req, (char *) &req, sizeof (req), 0);
+        mq_getattr(mq_req, &attr);
+    }
+
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -140,24 +172,39 @@ int main(int argc, char *argv[])
     mqd_t mq_req;         /* Message queue farmer -> worker */
     mqd_t mq_res;         /* Message queue worker -> farmer */
     pid_t workers_processID[NROF_WORKERS]; /* Process ID from fork() */
+    MQ_RES_MSG res;
+    MQ_REQ_MSG all_jobs[JOBS_NROF];
+    char passwords[MD5_LIST_NROF][MAX_MESSAGE_LENGTH];
+    int next_job = 0;
+    int passwords_received = 0;
 
 
     init_message_queues(&mq_req, &mq_res);
     create_workers(workers_processID);
 
+    make_jobs(all_jobs);
+    send_many_jobs(mq_req, all_jobs, &next_job);
 
     // TODO: this is only for testing purposes
-    MQ_REQ_MSG req;
-    req.hash = UINT128(0xcfcbe5bdf31116aa,0x3dcffb7e7470333e); // just a test message
-    req.first_letter = 'b';
-    req.quit_flg = false;
-    req.alphabet_size = ALPHABET_NROF_CHAR; // TODO maybe this one could be better passed as argument?
 
-    mq_send(mq_req, (char *) &req, sizeof (req), 0);
-    // see what came in. (for testing)
-    MQ_RES_MSG res;
-    mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
-    printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
+    while (passwords_received < MD5_LIST_NROF) {
+        mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL); //receive blocks, so no busy waiting.
+        if (res.finished == true) {
+            strcpy(passwords[res.ID], res.password);
+            passwords_received ++;
+        }
+        send_many_jobs(mq_req, all_jobs, &next_job);
+    }
+
+    for (int i = 0; i < MD5_LIST_NROF; i++) {
+        printf("'%s'\n",passwords[i]);
+    }
+
+
+
+
+    //mq_receive(mq_res, (char*)  &res, sizeof(MQ_RES_MSG), NULL);
+    //printf("solution received: %s %s \n", res.password, res.finished ? "true" : " false");
 
 
     sleep(5);
@@ -166,7 +213,7 @@ int main(int argc, char *argv[])
     wait_workers(workers_processID);
 
     getattr(mq_req);
-    sleep(1);
+    sleep(2);
 
     // TODO:
     //  * do the farming

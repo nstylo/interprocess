@@ -107,6 +107,7 @@ static bool solve(char firstLetter, char str[], uint128_t hash, int alphabet_siz
     }
     if(strlen(str) < MAX_MESSAGE_LENGTH){
         for (int j = 0; j < alphabet_size ; j++) {
+            // TODO use startchar here instead of 97.
             char new = j+97;
             strncat(str, &new, 1);
             if (tryHash(str, hash)) {
@@ -143,17 +144,18 @@ static void rsleep (int t)
 int main (int argc, char *argv[])
 {
     printf("We are in the child process %d\n", getpid());
-    printf("Given the following arguments: \n\n");
+
 
     // mq names
     char mq_name_req[255];      // NAME_MAX, see http://man7.org/linux/man-pages/man7/mq_overview.7.html
     char mq_name_res[255];
 
-    // read passed on arguments
-    for (int i = 0; i < argc; i++) {
-        printf("%d. %s\n", i, argv[i]);
 
-        // read and store mq names
+     //read passed on arguments
+    for (int i = 0; i < argc; i++) {
+        //printf("%d. %s\n", i, argv[i]);
+
+         //read and store mq names
         if (i == 1) {
             strcpy(mq_name_req, argv[i]);
         } else if (i == 2) {
@@ -175,8 +177,8 @@ int main (int argc, char *argv[])
     while (true) {
         strcpy(res.password, ""); //set to empty string to start recursion.
 
-        get_message(&req);
-        //printf("yeeey a message\n");
+        get_message(&req); //get message is blocking, so no busy waiting.
+
         // check if we have to quit.
         if (req.quit_flg == true) {
             close_mq(mq_name_req, mq_name_res);
